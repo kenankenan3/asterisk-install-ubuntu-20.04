@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# This script installs Asterisk on Ubuntu 20.04 and sets up necessary dependencies.
+# This script installs Asterisk on Ubuntu 20.04 and installs the necessary dependencies.
 
-# Check if the script is run as root
+# Check if running as root
 if [ "$(id -u)" != "0" ]; then
-   echo "Please run this script as root or with sudo privileges." 1>&2
+   echo "Please run this script as root or with sudo." 1>&2
    exit 1
 fi
 
@@ -12,21 +12,22 @@ fi
 echo "Updating the system..."
 apt update && apt upgrade -y
 
-# Install required packages
-echo "Installing necessary dependencies..."
+# Install necessary packages
+echo "Installing required dependencies..."
 apt install -y build-essential git wget libncurses5-dev libncursesw5-dev libssl-dev \
-libxml2-dev libsqlite3-dev uuid-dev libjansson-dev libedit-dev pkg-config curl
+libxml2-dev libsqlite3-dev uuid-dev libjansson-dev libedit-dev pkg-config curl \
+libmp3lame-dev
 
-# Download the Asterisk source code
-echo "Downloading the Asterisk source code..."
+# Download Asterisk source code
+echo "Downloading Asterisk source code..."
 cd /usr/src
-ASTERISK_VERSION="20-current"
-wget -4 http://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz
+ASTERISK_VERSION="20.4.0"  # Use the latest stable version number
+wget -4 https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz
 
 # Extract the source code
-echo "Extracting the Asterisk source code..."
+echo "Extracting Asterisk source code..."
 tar xvf asterisk-${ASTERISK_VERSION}.tar.gz
-cd asterisk-*/
+cd asterisk-${ASTERISK_VERSION}/
 
 # Install additional dependencies
 echo "Installing additional dependencies..."
@@ -36,9 +37,10 @@ contrib/scripts/install_prereq install
 echo "Configuring Asterisk..."
 ./configure
 
-# Download files required for MP3 support
-echo "Downloading MP3 module..."
-contrib/scripts/get_mp3_source.sh
+# Enable MP3 support with 'menuselect'
+echo "Enabling MP3 module..."
+make menuselect.makeopts
+menuselect/menuselect --enable FORMAT_MP3 menuselect.makeopts
 
 # Compile and install Asterisk
 echo "Compiling and installing Asterisk..."
@@ -49,12 +51,12 @@ make install
 echo "Installing sample configuration files..."
 make samples
 
-# Set up Asterisk as a system service
-echo "Setting up Asterisk as a system service..."
+# Add Asterisk as a system service
+echo "Adding Asterisk as a system service..."
 make config
 ldconfig
 
-# Create the Asterisk user and group
+# Create Asterisk user and group
 echo "Creating Asterisk user and group..."
 adduser --quiet --system --group --home /var/lib/asterisk asterisk
 
@@ -64,8 +66,8 @@ chown -R asterisk:asterisk /etc/asterisk
 chown -R asterisk:asterisk /var/{lib,log,spool}/asterisk
 chown -R asterisk:asterisk /usr/lib/asterisk
 
-# Start the Asterisk service and enable it to start on boot
-echo "Starting Asterisk service and enabling it to start on boot..."
+# Start the Asterisk service and enable it at boot
+echo "Starting Asterisk service and enabling it at boot..."
 systemctl start asterisk
 systemctl enable asterisk
 
